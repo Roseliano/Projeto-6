@@ -1,0 +1,77 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+Carregando e analisando os dados
+python
+Copiar código
+# Carregar a base de dados
+url = 'https://s3-us-west-2.amazonaws.com/secure.notion-static.com/9476d09e-5efc-4dee-8dd0-cbc871115ece/streaming_data.csv'
+data = pd.read_csv(url)
+
+# Descrição estatística e verificação dos dados
+print(data.describe())
+print(data.info())
+print(data.isna().sum())
+Tratamento dos dados
+python
+Copiar código
+# Substituir valores NaN por 0 em colunas específicas
+data.fillna({'time_on_platform': 0, 'num_streaming_services': 0, 'churned': 0, 'avg_rating': 0, 'devices_connected': 0}, inplace=True)
+
+# Dropar linhas nulas nas colunas 'gender', 'subscription_type' e 'age'
+data.dropna(subset=['gender', 'subscription_type', 'age'], inplace=True)
+
+# Transformar valores de 'churned' 0 e 1 por 'No' e 'Yes'
+data['churned'] = data['churned'].replace({0: 'No', 1: 'Yes'})
+
+# Transformar valores floats em inteiros
+data = data.astype({'time_on_platform': int, 'num_streaming_services': int, 'avg_rating': int, 'devices_connected': int})
+Modelagem dos dados - Regressão Logística
+python
+Copiar código
+# Definir variáveis X e y
+X = data.drop('churned', axis=1)
+y = data['churned']
+
+# Transformar variáveis categóricas
+X = pd.get_dummies(X)
+
+# Escalar variáveis
+scaler = MinMaxScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Separar em treino e teste
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+
+# Treinar modelo de Regressão Logística
+log_reg = LogisticRegression()
+log_reg.fit(X_train, y_train)
+
+# Previsões e métricas
+y_pred = log_reg.predict(X_test)
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+# Plotar matrix de confusão
+ConfusionMatrixDisplay.from_estimator(log_reg, X_test, y_test)
+plt.show()
+Modelagem dos dados - Random Forest
+python
+Copiar código
+# Treinar modelo de Random Forest
+rf = RandomForestClassifier()
+rf.fit(X_train, y_train)
+
+# Previsões e métricas
+y_pred_rf = rf.predict(X_test)
+print(confusion_matrix(y_test, y_pred_rf))
+print(classification_report(y_test, y_pred_rf))
+
+# Plotar matrix de confusão
+ConfusionMatrixDisplay.from_estimator(rf, X_test, y_test)
+plt.show()
